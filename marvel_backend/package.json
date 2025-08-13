@@ -1,5 +1,6 @@
 {
   "name": "marvel_backend",
+  "type": "module",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -17,6 +18,7 @@
   "homepage": "https://github.com/Fenohasina08/marvel/tree/main#readme",
   "description": "",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.1.0"
   }
 }
