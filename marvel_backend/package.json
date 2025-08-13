@@ -1,0 +1,22 @@
+{
+  "name": "marvel_backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fenohasina08/marvel.git#main"
+  },
+  "author": "fenohasina",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Fenohasina08/marvel/issues"
+  },
+  "homepage": "https://github.com/Fenohasina08/marvel/tree/main#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
