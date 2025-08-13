@@ -1,11 +1,12 @@
 import './App.css'
+import './index.css'   // ← très important pour activer Tailwind
 
 function App() {
  
 
   return (
     <>
-        <h2 className='text-violet-600 text-5xl'>Hello</h2>
+        <h2 className=''>Hello</h2>
     </>
   )
 }
