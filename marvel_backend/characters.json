@@ -1,27 +1,15 @@
 {
   "characters": [
-    {
+     {
       "id": 1,
-      "name": "Spider-Man",
-      "realName": "Peter Parker",
-      "universe": "Earth-616"
+      "name": "Gumball",
+      "realName": "Watterson",
+      "universe": "Monde incroyable de gumball"
     },
-    {
-      "id": 2,
-      "name": "Iron Man",
-      "realName": "Tony Stark",
-      "universe": "Earth-616"
-    },
-    {
-      "id": 3,
-      "name": "Captain America",
-      "realName": "Steve Rogers",
-      "universe": "Earth-616"
-    },
-    {
-      "id": 4,
-      "name": "Black Widow",
-      "realName": "Natasha Romanoff",
+     {
+      "id": 5,
+      "name": "Black Panther",
+      "realName": "T'Challa",
       "universe": "Earth-616"
     },
     {
