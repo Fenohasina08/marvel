@@ -1,9 +1,15 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function App() {
   const [characters, setCharacters] = useState([]); // Liste des personnages
   const [editingId, setEditingId] = useState(null); // ID du personnage en édition
   const [newName, setNewName] = useState('');       // Nom temporaire pendant l'édition
+  const [showForm, setShowForm] = useState(false);  // Afficher le formulaire d'ajout
+  const [newCharacter, setNewCharacter] = useState({
+    name: '',
+    realName: '',
+    universe: ''
+  });
 
   // Récupérer les personnages depuis le backend
   useEffect(() => {
@@ -15,49 +21,72 @@ function App() {
 
   // Supprimer un personnage
   const deleteCharacter = (id) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce personnage ?")) return;
     fetch(`http://localhost:3001/api/characters/${id}`, { method: 'DELETE' })
-      .then(() => {
-        setCharacters(characters.filter(char => char.id !== id));
+      .then(res => res.json())
+      .then(data => {
+        setCharacters(data.characters); // IDs mis à jour côté backend
       })
       .catch(err => console.error('Erreur suppression:', err));
   };
 
   // Commencer l'édition
   const startEditing = (char) => {
-    setEditingId(char.id); // mettre l'ID de la ligne en édition
-    setNewName(char.name); // pré-remplir l'input avec le nom actuel
+    setEditingId(char.id);
+    setNewName(char.name);
   };
 
+  // Sauvegarder la modification
   const saveEdit = (id) => {
-  if (newName.trim() === '') return alert("Le nom ne peut pas être vide !");
-  
-  fetch(`http://localhost:3001/api/characters/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: newName })
-  })
-    .then(res => res.json())
-    .then(updatedChar => {
-      setCharacters(characters.map(char => char.id === id ? updatedChar : char));
-      setEditingId(null); // <-- bouton redevient Edit ici
+    if (newName.trim() === '') return alert("Le nom ne peut pas être vide !");
+    fetch(`http://localhost:3001/api/characters/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName })
     })
-    .catch(err => console.error('Erreur mise à jour:', err));
-};
- 
+      .then(res => res.json())
+      .then(updatedChar => {
+        setCharacters(characters.map(char => char.id === id ? updatedChar : char));
+        setEditingId(null);
+      })
+      .catch(err => console.error('Erreur mise à jour:', err));
+  };
+
+  // Ajouter un nouveau personnage
+  const addCharacter = () => {
+    if (!newCharacter.name || !newCharacter.realName || !newCharacter.universe) {
+      alert("Tous les champs doivent être remplis !");
+      return;
+    }
+
+    const nextId = characters.length > 0 ? Math.max(...characters.map(c => c.id)) + 1 : 1;
+    const characterToAdd = { id: nextId, ...newCharacter };
+
+    // Ajouter côté frontend
+    setCharacters([...characters, characterToAdd]);
+
+    // Réinitialiser le formulaire
+    setNewCharacter({ name: '', realName: '', universe: '' });
+    setShowForm(false);
+
+    // Envoyer au backend
+    fetch('http://localhost:3001/api/characters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(characterToAdd)
+    })
+    .then(res => res.json())
+    .then(data => console.log('Personnage ajouté:', data))
+    .catch(err => console.error(err));
+  };
 
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6 flex text-center items-center">Tableau des personnages</h1>
-          <div className="searchbutton">
-              <input type="search" name="recherche" id=""
-                  className='bg-red-500 w-[20vw] h-[2vh] m-2 p-5'/>
-              <button type="submit"
-              
-              className='bg-blue-400 w-[10vw] h-[4vh] rounded-4xl '>Rechercher</button>
-          </div>
-        <div className="overflow-x-auto mt-5">
 
-     
+   
+
+      <div className="overflow-x-auto mt-5">
         <table className="min-w-full bg-white border border-gray-200 shadow-md rounded-lg">
           <thead>
             <tr className="bg-gray-100">
@@ -72,8 +101,6 @@ function App() {
             {characters.map(char => (
               <tr key={char.id} className="text-center hover:bg-gray-50">
                 <td className="py-2 px-4 border-b">{char.id}</td>
-
-                {/* Champ Nom éditable */}
                 <td className="py-2 px-4 border-b">
                   {editingId === char.id ? (
                     <input
@@ -87,32 +114,26 @@ function App() {
                     char.name
                   )}
                 </td>
-
                 <td className="py-2 px-4 border-b">{char.realName}</td>
                 <td className="py-2 px-4 border-b">{char.universe}</td>
-
-                {/* Boutons Actions */}
                 <td className="py-2 px-4 border-b flex justify-center">
                   {editingId === char.id ? (
-                      <button 
-                        onClick={() => saveEdit(char.id)}
-                        className="text-white bg-green-400 border border-green-500 rounded px-2 py-1 w-[5vw] mr-2"
-                      >
-                        Sauvegarder
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => startEditing(char)}
-                        className="text-white bg-blue-400 border border-blue-500 rounded px-2 py-1 w-[5vw] mr-2"
-                      >
-                        Edit
-                      </button>
-                    )}
-
-
+                    <button 
+                      onClick={() => saveEdit(char.id)}
+                      className="text-white bg-green-400 border border-green-500 rounded px-2 py-1 w-[5vw] mr-2"
+                    >
+                      Sauvegarder
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => startEditing(char)}
+                      className="text-white bg-blue-400 border border-blue-500 rounded px-2 py-1 w-[5vw] mr-2"
+                    >
+                      Edit
+                    </button>
+                  )}
                   <button 
-                  
-                    onClick={() => alert("Voulez-vous suppr ?") ? startEditing(char) : deleteCharacter(char.id)  }
+                    onClick={() => deleteCharacter(char.id)}
                     className="text-white bg-red-400 border border-red-500 rounded px-2 py-1 w-[5vw]"
                   >
                     Suppr
@@ -122,6 +143,57 @@ function App() {
             ))}
           </tbody>
         </table>
+
+        {/* Bouton Add */}
+        <div className="flex justify-center mt-4">
+          <button 
+            type="button" 
+            onClick={() => setShowForm(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+          >
+            Add
+          </button>
+        </div>
+
+        {/* Formulaire d'ajout */}
+        {showForm && (
+          <div className="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
+            <input 
+              type="text" 
+              placeholder="Surnom" 
+              value={newCharacter.name} 
+              onChange={(e) => setNewCharacter({...newCharacter, name: e.target.value})} 
+              className="border p-2 rounded mr-2"
+            />
+            <input 
+              type="text" 
+              placeholder="Nom réel" 
+              value={newCharacter.realName} 
+              onChange={(e) => setNewCharacter({...newCharacter, realName: e.target.value})} 
+              className="border p-2 rounded mr-2"
+            />
+            <input 
+              type="text" 
+              placeholder="Univers" 
+              value={newCharacter.universe} 
+              onChange={(e) => setNewCharacter({...newCharacter, universe: e.target.value})} 
+              className="border p-2 rounded mr-2"
+            />
+            <button 
+              onClick={addCharacter} 
+              className="bg-green-500 hover:bg-green-600 text-white py-1 px-4 rounded"
+            >
+              Ajouter
+            </button>
+            <button 
+              onClick={() => setShowForm(false)} 
+              className="bg-gray-400 hover:bg-gray-500 text-white py-1 px-4 rounded ml-2"
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );
