@@ -3,8 +3,8 @@
     {
       "id": 1,
       "name": "Spider-Man2",
-      "realName": "Peter Parker",
-      "universe": "Earth-616"
+      "realName": "Tony Parker",
+      "universe": "he"
     },
     {
       "id": 2,
@@ -47,6 +47,18 @@
       "name": "Hulk",
       "realName": "Bruce Banner",
       "universe": "Earth-616"
+    },
+    {
+      "id": 9,
+      "name": "fz",
+      "realName": "fez",
+      "universe": "fz"
+    },
+    {
+      "id": 10,
+      "name": "fe",
+      "realName": "fe",
+      "universe": "fe"
     }
   ]
 }

@@ -1,4 +1,4 @@
-import express from 'express';
+ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,13 +16,30 @@ app.use(express.json());
 
 const dataPath = path.join(__dirname, 'characters.json');
 
+// Vérifier que le fichier JSON existe sinon le créer
+if (!fs.existsSync(dataPath)) {
+  fs.writeFileSync(dataPath, JSON.stringify({ characters: [] }, null, 2));
+}
+
+// Fonction utilitaire pour lire les données
+const readData = () => {
+  try {
+    const jsonData = fs.readFileSync(dataPath, 'utf-8');
+    return JSON.parse(jsonData);
+  } catch (e) {
+    return { characters: [] };
+  }
+};
+
+// Fonction utilitaire pour écrire les données
+const writeData = (data) => {
+  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+};
+
 // ✅ GET : récupérer tous les personnages
 app.get('/api/characters', (req, res) => {
-  fs.readFile(dataPath, 'utf-8', (err, jsonData) => {
-    if (err) return res.status(500).json({ error: 'Impossible de lire le fichier' });
-    const data = JSON.parse(jsonData);
-    res.json(data);
-  });
+  const data = readData();
+  res.json(data);
 });
 
 // ✅ PUT : modifier un personnage
@@ -30,53 +47,32 @@ app.put('/api/characters/:id', (req, res) => {
   const charId = parseInt(req.params.id);
   const { name, realName, universe } = req.body;
 
-  fs.readFile(dataPath, 'utf-8', (err, jsonData) => {
-    if (err) return res.status(500).json({ error: 'Impossible de lire le fichier' });
+  const data = readData();
+  const charIndex = data.characters.findIndex(c => c.id === charId);
 
-    const data = JSON.parse(jsonData);
-    const charIndex = data.characters.findIndex(c => c.id === charId);
+  if (charIndex === -1) return res.status(404).json({ error: 'Personnage non trouvé' });
 
-    if (charIndex === -1) return res.status(404).json({ error: 'Personnage non trouvé' });
+  // Mettre à jour uniquement les champs envoyés
+  if (name !== undefined) data.characters[charIndex].name = name;
+  if (realName !== undefined) data.characters[charIndex].realName = realName;
+  if (universe !== undefined) data.characters[charIndex].universe = universe;
 
-    // Mettre à jour tous les champs
-    data.characters[charIndex].name = name;
-    data.characters[charIndex].realName = realName;
-    data.characters[charIndex].universe = universe;
-
-    fs.writeFile(dataPath, JSON.stringify(data, null, 2), (err) => {
-      if (err) return res.status(500).json({ error: 'Impossible de sauvegarder le fichier' });
-
-      res.json(data.characters[charIndex]);
-    });
-  });
+  writeData(data);
+  res.json(data.characters[charIndex]);
 });
 
-// ✅ DELETE : supprimer un personnage et réattribuer les IDs
+// ✅ DELETE : supprimer un personnage (IDs conservés)
 app.delete('/api/characters/:id', (req, res) => {
   const charId = parseInt(req.params.id);
+  const data = readData();
 
-  fs.readFile(dataPath, 'utf-8', (err, jsonData) => {
-    if (err) return res.status(500).json({ error: 'Impossible de lire le fichier' });
+  const newCharacters = data.characters.filter(c => c.id !== charId);
+  if (newCharacters.length === data.characters.length) {
+    return res.status(404).json({ error: 'Personnage non trouvé' });
+  }
 
-    let data = JSON.parse(jsonData);
-
-    // Supprimer le personnage
-    let newCharacters = data.characters.filter(c => c.id !== charId);
-
-    if (newCharacters.length === data.characters.length) {
-      return res.status(404).json({ error: 'Personnage non trouvé' });
-    }
-
-    // Réattribuer les IDs automatiquement (1,2,3...)
-    newCharacters = newCharacters.map((c, index) => ({ ...c, id: index + 1 }));
-
-    const newData = { characters: newCharacters };
-    fs.writeFile(dataPath, JSON.stringify(newData, null, 2), (err) => {
-      if (err) return res.status(500).json({ error: 'Impossible de sauvegarder le fichier' });
-
-      res.json({ message: 'Personnage supprimé avec succès', characters: newCharacters });
-    });
-  });
+  writeData({ characters: newCharacters });
+  res.json({ message: 'Personnage supprimé avec succès', characters: newCharacters });
 });
 
 // ✅ POST : ajouter un personnage
@@ -87,25 +83,16 @@ app.post('/api/characters', (req, res) => {
     return res.status(400).json({ error: 'Tous les champs sont obligatoires' });
   }
 
-  fs.readFile(dataPath, 'utf-8', (err, jsonData) => {
-    if (err) return res.status(500).json({ error: 'Impossible de lire le fichier' });
+  const data = readData();
+  const newId = data.characters.length > 0
+    ? Math.max(...data.characters.map(c => c.id)) + 1
+    : 1;
 
-    const data = JSON.parse(jsonData);
+  const newCharacter = { id: newId, name, realName, universe };
+  data.characters.push(newCharacter);
 
-    // Générer un nouvel id
-    const newId = data.characters.length > 0
-      ? Math.max(...data.characters.map(c => c.id)) + 1
-      : 1;
-
-    const newCharacter = { id: newId, name, realName, universe };
-    data.characters.push(newCharacter);
-
-    fs.writeFile(dataPath, JSON.stringify(data, null, 2), (err) => {
-      if (err) return res.status(500).json({ error: 'Impossible de sauvegarder le fichier' });
-
-      res.status(201).json({ character: newCharacter });
-    });
-  });
+  writeData(data);
+  res.status(201).json({ character: newCharacter });
 });
 
 app.listen(PORT, () => {
