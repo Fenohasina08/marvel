@@ -1,4 +1,3 @@
-// Import des modules
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -12,34 +11,25 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3001;
 
-// Middleware
 app.use(cors());
-app.use(express.json()); // Permet de lire les données JSON du body
+app.use(express.json());
 
-// Chemin du fichier JSON
 const dataPath = path.join(__dirname, 'characters.json');
 
-/**
- * ROUTE GET : Récupérer tous les personnages
- */
+// ✅ GET : récupérer tous les personnages
 app.get('/api/characters', (req, res) => {
   fs.readFile(dataPath, 'utf-8', (err, jsonData) => {
-    if (err) {
-      return res.status(500).json({ error: 'Impossible de lire le fichier' });
-    }
+    if (err) return res.status(500).json({ error: 'Impossible de lire le fichier' });
     const data = JSON.parse(jsonData);
     res.json(data);
   });
 });
 
-/**
- * ROUTE PUT : Modifier un personnage spécifique
- */
+// ✅ PUT : modifier un personnage
 app.put('/api/characters/:id', (req, res) => {
   const charId = parseInt(req.params.id);
-  const { name } = req.body;
+  const { name, realName, universe } = req.body;
 
-  // Lire le fichier JSON
   fs.readFile(dataPath, 'utf-8', (err, jsonData) => {
     if (err) return res.status(500).json({ error: 'Impossible de lire le fichier' });
 
@@ -48,48 +38,76 @@ app.put('/api/characters/:id', (req, res) => {
 
     if (charIndex === -1) return res.status(404).json({ error: 'Personnage non trouvé' });
 
-    // Modifier le nom du personnage
+    // Mettre à jour tous les champs
     data.characters[charIndex].name = name;
+    data.characters[charIndex].realName = realName;
+    data.characters[charIndex].universe = universe;
 
-    // Réécrire le fichier JSON
     fs.writeFile(dataPath, JSON.stringify(data, null, 2), (err) => {
       if (err) return res.status(500).json({ error: 'Impossible de sauvegarder le fichier' });
 
-      // Renvoie le personnage modifié
       res.json(data.characters[charIndex]);
     });
   });
 });
 
-/**
- * ROUTE DELETE : Supprimer un personnage spécifique
- */
+// ✅ DELETE : supprimer un personnage et réattribuer les IDs
 app.delete('/api/characters/:id', (req, res) => {
   const charId = parseInt(req.params.id);
 
-  // Lire le fichier JSON
   fs.readFile(dataPath, 'utf-8', (err, jsonData) => {
     if (err) return res.status(500).json({ error: 'Impossible de lire le fichier' });
 
-    const data = JSON.parse(jsonData);
-    const newCharacters = data.characters.filter(c => c.id !== charId);
+    let data = JSON.parse(jsonData);
 
-    // Vérifie si un personnage a été supprimé
+    // Supprimer le personnage
+    let newCharacters = data.characters.filter(c => c.id !== charId);
+
     if (newCharacters.length === data.characters.length) {
       return res.status(404).json({ error: 'Personnage non trouvé' });
     }
 
-    // Réécrire le fichier JSON
+    // Réattribuer les IDs automatiquement (1,2,3...)
+    newCharacters = newCharacters.map((c, index) => ({ ...c, id: index + 1 }));
+
     const newData = { characters: newCharacters };
     fs.writeFile(dataPath, JSON.stringify(newData, null, 2), (err) => {
       if (err) return res.status(500).json({ error: 'Impossible de sauvegarder le fichier' });
 
-      res.json({ message: 'Personnage supprimé avec succès' });
+      res.json({ message: 'Personnage supprimé avec succès', characters: newCharacters });
     });
   });
 });
 
-// Lancer le serveur
+// ✅ POST : ajouter un personnage
+app.post('/api/characters', (req, res) => {
+  const { name, realName, universe } = req.body;
+
+  if (!name || !realName || !universe) {
+    return res.status(400).json({ error: 'Tous les champs sont obligatoires' });
+  }
+
+  fs.readFile(dataPath, 'utf-8', (err, jsonData) => {
+    if (err) return res.status(500).json({ error: 'Impossible de lire le fichier' });
+
+    const data = JSON.parse(jsonData);
+
+    // Générer un nouvel id
+    const newId = data.characters.length > 0
+      ? Math.max(...data.characters.map(c => c.id)) + 1
+      : 1;
+
+    const newCharacter = { id: newId, name, realName, universe };
+    data.characters.push(newCharacter);
+
+    fs.writeFile(dataPath, JSON.stringify(data, null, 2), (err) => {
+      if (err) return res.status(500).json({ error: 'Impossible de sauvegarder le fichier' });
+
+      res.status(201).json({ character: newCharacter });
+    });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`✅ Serveur backend démarré sur http://localhost:${PORT}`);
 });
